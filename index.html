@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NovaMart — Business Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#2563EB; --teal:#0D9488; --amber:#D97706; --coral:#E05A3A;
+    --green:#16A34A; --purple:#7C3AED; --bg:#F4F5F7; --surface:#FFFFFF;
+    --border:#E4E6EA; --text:#111827; --muted:#6B7280; --radius:12px; --radius-sm:8px;
+  }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; line-height:1.5; }
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:60px; position:sticky; top:0; z-index:100; }
+  .header-brand { display:flex; align-items:center; gap:12px; }
+  .brand-icon { width:36px; height:36px; border-radius:var(--radius-sm); background:var(--blue); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; }
+  .brand-name { font-size:15px; font-weight:600; color:var(--text); }
+  .brand-sub { font-size:11px; color:var(--muted); letter-spacing:.04em; }
+  .quarter-btns { display:flex; gap:6px; align-items:center; }
+  .quarter-label { font-size:12px; color:var(--muted); margin-right:4px; }
+  .q-btn { padding:5px 16px; font-size:13px; font-weight:500; font-family:'DM Sans',sans-serif; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all .15s; }
+  .q-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .q-btn.active { background:#EFF6FF; border-color:var(--blue); color:var(--blue); }
+  .container { max-width:1200px; margin:0 auto; padding:28px 32px 48px; }
+  .overview-banner { background:linear-gradient(135deg,#1E3A8A 0%,#1D4ED8 60%,#2563EB 100%); border-radius:var(--radius); padding:22px 28px; margin-bottom:22px; display:grid; grid-template-columns:1fr 1fr 2fr; gap:28px; align-items:center; }
+  .overview-item label { display:block; font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-bottom:5px; }
+  .overview-item .val { font-size:14px; font-weight:600; color:#fff; }
+  .overview-item .desc { font-size:12px; color:rgba(255,255,255,.75); line-height:1.6; }
+  .section-title { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:22px; }
+  .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden; }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent); border-radius:var(--radius) var(--radius) 0 0; }
+  .kpi-top { display:flex; align-items:center; justify-content:space-between; }
+  .kpi-label { font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .kpi-icon { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; background:var(--icon-bg); color:var(--accent); }
+  .kpi-value { font-size:22px; font-weight:600; color:var(--text); letter-spacing:-.02em; font-family:'DM Mono',monospace; }
+  .kpi-trend { display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; }
+  .kpi-trend span { font-size:11px; color:var(--muted); font-weight:400; }
+  .up { color:var(--green); }
+  .down { color:var(--coral); }
+  .charts-row { display:grid; gap:16px; margin-bottom:16px; }
+  .charts-row-1 { grid-template-columns:2fr 1fr; }
+  .charts-row-2 { grid-template-columns:1fr 1fr; }
+  .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .chart-title { font-size:13px; font-weight:600; color:var(--text); }
+  .chart-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+  .legend-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+  .chart-wrap { position:relative; width:100%; }
+  .region-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .region-row { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .region-name { flex:1; color:var(--muted); }
+  .region-bar-wrap { flex:2; height:6px; background:#EEF2FF; border-radius:99px; overflow:hidden; }
+  .region-bar { height:100%; border-radius:99px; transition:width .5s ease; }
+  .region-pct { font-weight:600; color:var(--text); min-width:30px; text-align:right; }
+  .insights-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+  .insight-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; gap:12px; align-items:flex-start; border-left:4px solid var(--accent); }
+  .insight-icon { width:34px; height:34px; min-width:34px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:16px; background:var(--icon-bg); }
+  .insight-label { font-size:12px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .insight-text { font-size:12px; color:var(--muted); line-height:1.6; }
+  .footer { text-align:center; font-size:11px; color:var(--muted); padding-top:8px; border-top:1px solid var(--border); }
+  .donut-container { display:flex; flex-direction:column; align-items:center; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+  ✏️ SECTION 1 — HEADER TEXT  (edit directly in the HTML below)
+================================================================ -->
+<header class="header">
+  <div class="header-brand">
+    <div class="brand-icon">🏪</div>
+    <div>
+      <div class="brand-name">NovaMart Retail Solutions</div><!-- ✏️ Brand name -->
+      <div class="brand-sub">Business Intelligence Dashboard</div><!-- ✏️ Subtitle -->
+    </div>
+  </div>
+  <div class="quarter-btns">
+    <span class="quarter-label">Quarter:</span>
+    <button class="q-btn" data-q="Q1">Q1</button>
+    <button class="q-btn" data-q="Q2">Q2</button>
+    <button class="q-btn" data-q="Q3">Q3</button>
+    <button class="q-btn active" data-q="Q4">Q4</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ================================================================
+    ✏️ SECTION 2 — BUSINESS OVERVIEW  (edit the three text fields below)
+  ================================================================ -->
+  <div class="overview-banner">
+    <div class="overview-item">
+      <label>Business Name</label>
+      <div class="val">NovaMart Retail Solutions, Inc.</div><!-- ✏️ Your business name -->
+    </div>
+    <div class="overview-item">
+      <label>Type of Business</label>
+      <div class="val">Multi-Category Retail Chain</div><!-- ✏️ Your industry/type -->
+    </div>
+    <div class="overview-item">
+      <label>Dashboard Objective</label>
+      <!-- ✏️ What decision or problem does this dashboard support? (2-3 sentences) -->
+      <div class="desc">Support management decisions on sales performance, inventory optimization, and customer retention across all Philippine branches. Enables data-driven action on revenue trends, regional gaps, and product mix.</div>
+    </div>
+  </div>
+
+  <!-- KPI cards are driven by JavaScript. Edit KPI values in the DATA object in the script below. -->
+  <div class="section-title" id="kpi-quarter-label">Key Performance Indicators — Q4 2024</div>
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--accent:#2563EB;--icon-bg:#EFF6FF">
+      <div class="kpi-top"><div class="kpi-label">Total Revenue</div><div class="kpi-icon">💰</div></div>
+      <div class="kpi-value" id="kpi-revenue"></div>
+      <div class="kpi-trend up" id="kpi-revenue-trend"></div>
+    </div>
+    <div class="kpi-card" style="--accent:#16A34A;--icon-bg:#F0FDF4">
+      <div class="kpi-top"><div class="kpi-label">Sales Growth</div><div class="kpi-icon">📈</div></div>
+      <div class="kpi-value" id="kpi-growth"></div>
+      <div class="kpi-trend" id="kpi-growth-trend"></div>
+    </div>
+    <div class="kpi-card" style="--accent:#0D9488;--icon-bg:#F0FDFA">
+      <div class="kpi-top"><div class="kpi-label">Customer Retention</div><div class="kpi-icon">❤️</div></div>
+      <div class="kpi-value" id="kpi-retention"></div>
+      <div class="kpi-trend up" id="kpi-retention-trend"></div>
+    </div>
+    <div class="kpi-card" style="--accent:#D97706;--icon-bg:#FFFBEB">
+      <div class="kpi-top"><div class="kpi-label">Avg. Order Value</div><div class="kpi-icon">🛒</div></div>
+      <div class="kpi-value" id="kpi-aov"></div>
+      <div class="kpi-trend up" id="kpi-aov-trend"></div>
+    </div>
+    <div class="kpi-card" style="--accent:#7C3AED;--icon-bg:#F5F3FF">
+      <div class="kpi-top"><div class="kpi-label">Inventory Turnover</div><div class="kpi-icon">📦</div></div>
+      <div class="kpi-value" id="kpi-turnover"></div>
+      <div class="kpi-trend up" id="kpi-turnover-trend"></div>
+    </div>
+    <div class="kpi-card" style="--accent:#E05A3A;--icon-bg:#FFF7ED">
+      <div class="kpi-top"><div class="kpi-label">Net Profit Margin</div><div class="kpi-icon">📊</div></div>
+      <div class="kpi-value" id="kpi-margin"></div>
+      <div class="kpi-trend up" id="kpi-margin-trend"></div>
+    </div>
+  </div>
+
+  <!-- Charts are driven by JavaScript. Edit chart data in the DATA object in the script below. -->
+  <div class="charts-row charts-row-1">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Revenue, Expenses &amp; Net Profit (₱K)</div><!-- ✏️ Chart title -->
+          <div class="chart-sub">Monthly breakdown for selected quarter</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Revenue</div>
+          <div class="legend-item"><div class="legend-dot" style="border:2px dashed #E05A3A"></div>Expenses</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Profit</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="revenueChart" role="img" aria-label="Line chart showing monthly revenue, expenses and profit"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Revenue by Region</div><!-- ✏️ Chart title -->
+          <div class="chart-sub">Percentage share — Philippines</div>
+        </div>
+      </div>
+      <div class="donut-container">
+        <div class="chart-wrap" style="height:160px;width:160px">
+          <canvas id="regionChart" role="img" aria-label="Donut chart of revenue by region"></canvas>
+        </div>
+      </div>
+      <div class="region-list" id="region-list"></div>
+    </div>
+  </div>
+
+  <div class="charts-row charts-row-2" style="margin-top:16px">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Sales by Product Category (₱K)</div><!-- ✏️ Chart title -->
+          <div class="chart-sub">Top 5 categories this quarter</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="categoryChart" role="img" aria-label="Horizontal bar chart of sales by category"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly Order Volume</div><!-- ✏️ Chart title -->
+          <div class="chart-sub">Number of transactions processed</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="ordersChart" role="img" aria-label="Bar chart of monthly order volume"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights are driven by JavaScript. Edit insight text in the DATA object in the script below. -->
+  <div class="section-title" style="margin-top:22px;margin-bottom:12px">Insights &amp; Management Recommendations</div>
+  <div class="insights-grid" id="insights-grid"></div>
+
+  <div class="footer">
+    NovaMart Retail Solutions, Inc. &mdash; AIS Dashboard Design Challenge &nbsp;·&nbsp;<!-- ✏️ Business name -->
+    All data is hypothetical and used for academic purposes &nbsp;·&nbsp;
+    <span id="footer-quarter">Q4</span> 2024<!-- ✏️ Year -->
+  </div>
+</div>
+
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   ✏️  DATA ENTRY ZONE — ALL EDITABLE DATA IS HERE
+   ════════════════════════════════════════════════════════════════════
+
+   HOW TO USE THIS FILE:
+   ─────────────────────
+   • This dashboard has 4 quarter tabs (Q1–Q4).
+   • Each quarter has its own data block below.
+   • Find the quarter you want to update, then replace the sample
+     numbers/text with your actual data.
+   • Everything else (charts, cards, insights) updates automatically.
+
+   WHAT EACH FIELD MEANS:
+   ──────────────────────
+   months        → 3 month names shown on the x-axis  (e.g. "Jan", "Feb", "Mar")
+   revenue       → monthly revenue in ₱ thousands     (e.g. 420 = ₱420,000)
+   expenses      → monthly expenses in ₱ thousands
+   profit        → monthly net profit in ₱ thousands  (tip: revenue minus expenses)
+   orders        → number of orders/transactions per month
+   categories    → product/service names + their total sales this quarter (₱K)
+   regions       → area names + their % of total revenue (all pct values must sum to 100)
+   kpis          → the 6 summary tiles shown at the top of the dashboard
+   insights      → your 4 written analysis cards at the bottom of the dashboard
+
+   ════════════════════════════════════════════════════════════════════ */
+
+const DATA = {
+
+/* ──────────────────────────────────────────────────────────────────
+   ✏️  Q1 DATA  |  January · February · March
+   ────────────────────────────────────────────────────────────────── */
+  Q1: {
+
+    /* CHART 1 — Revenue / Expenses / Profit (line chart)
+       ✏️ Replace each number with your monthly figure (in ₱ thousands).
+          Must have exactly 3 values — one per month.                 */
+    months:   [ "Jan",  "Feb",  "Mar"  ],  // ✏️ month labels
+    revenue:  [  420,    390,    510   ],  // ✏️ e.g. 420 = ₱420,000
+    expenses: [  310,    295,    340   ],  // ✏️
+    profit:   [  110,     95,    170   ],  // ✏️ usually revenue - expenses
+
+    /* CHART 2 — Monthly Order Volume (bar chart)
+       ✏️ Replace with actual transaction/order counts per month.     */
+    orders:   [ 1840,   1710,   2230   ],  // ✏️ number of orders
+
+    /* CHART 3 — Sales by Category (horizontal bar chart)
+       ✏️ Replace category names and their quarterly sales (₱K).
+          You can have 3 to 6 rows — just keep labels and values aligned. */
+    categories: {
+      labels: [ "Electronics",  "Apparel",  "Home & Garden",  "Sports",  "Food & Bev" ],
+      //         ✏️ Cat 1        ✏️ Cat 2    ✏️ Cat 3           ✏️ Cat 4   ✏️ Cat 5
+      values: [   520,           310,         240,              180,        150         ]
+      //          ✏️ ₱K           ✏️           ✏️                ✏️          ✏️
+    },
+
+    /* CHART 4 — Revenue by Region (donut + bar list)
+       ✏️ Replace names, percentages, and colors.
+          All pct values MUST add up to exactly 100.
+          color: any hex code — pick what matches your brand.         */
+    regions: [
+      { name: "Metro Manila",  pct: 38,  color: "#2563EB" },  // ✏️
+      { name: "Visayas",       pct: 22,  color: "#0D9488" },  // ✏️
+      { name: "Mindanao",      pct: 18,  color: "#D97706" },  // ✏️
+      { name: "Luzon North",   pct: 14,  color: "#7C3AED" },  // ✏️
+      { name: "Luzon South",   pct:  8,  color: "#E05A3A" },  // ✏️ (38+22+18+14+8 = 100)
+    ],
+
+    /* KPI CARDS — the 6 summary tiles at the top
+       ✏️ Replace each value with your actual quarterly figure.
+
+       Field reference:
+         revenue       displayed total revenue          e.g. "₱1,320K"
+         growth        quarter-over-quarter change       e.g. "+8.4%" or "-3.1%"
+         growthDir     "up" = green arrow, "down" = red arrow
+         retention     customer retention rate           e.g. "73.2%"
+         retentionDiff vs 72% baseline                  e.g. "+1.2%"
+         aov           average order value               e.g. "₱2,850"
+         aovDiff       vs ₱2,800 target                 e.g. "+1.8%"
+         turnover      inventory turnover ratio          e.g. "4.1x"
+         turnoverDiff  vs 4.0x benchmark                e.g. "+2.5%"
+         margin        net profit margin                 e.g. "28.8%"
+         marginDiff    vs 30% target                    e.g. "-1.2pts"       */
+    kpis: {
+      revenue:       "₱1,320K",  // ✏️ Total Q1 revenue
+      growth:        "+8.4%",    // ✏️ Quarter-over-quarter growth rate
+      growthDir:     "up",       // ✏️ "up" or "down"
+      retention:     "73.2%",    // ✏️ Customer retention rate
+      retentionDiff: "+1.2%",    // ✏️ vs 72% baseline
+      aov:           "₱2,850",   // ✏️ Average order value
+      aovDiff:       "+1.8%",    // ✏️ vs ₱2,800 target
+      turnover:      "4.1x",     // ✏️ Inventory turnover ratio
+      turnoverDiff:  "+2.5%",    // ✏️ vs 4.0x benchmark
+      margin:        "28.8%",    // ✏️ Net profit margin %
+      marginDiff:    "-1.2pts",  // ✏️ vs 30% target (use "pts" for percentage points)
+    },
+
+    /* INSIGHTS & RECOMMENDATIONS — 4 analysis cards at the bottom
+       ✏️ This is where you write your interpretation of the data.
+          Replace label and text with your actual written analysis.
+
+       Fields:
+         icon    any emoji that fits the finding  (e.g. 📉 🚀 ⚠️ ❤️ 💡)
+         accent  card accent color in hex          (e.g. "#16A34A" for green)
+         label   short title for the insight       (5–8 words)
+         text    your analysis + recommendation    (2–3 sentences)           */
+    insights: [
+      {
+        icon:   "📉",
+        accent: "#D97706",           // ✏️ amber = caution
+        label:  "Modest Revenue Growth",             // ✏️ finding title
+        text:   "Revenue grew 8.4% — steady but below the 15% target. Increase Q2 promotional activity in Mindanao and Luzon to accelerate momentum."
+        //       ✏️ Your written analysis and management action ↑
+      },
+      {
+        icon:   "⚠️",
+        accent: "#E05A3A",           // ✏️ coral = warning
+        label:  "Profit Margin Below Target",        // ✏️
+        text:   "Net profit at 28.8% falls short of the 30% goal. Review supplier contracts and reduce slow-moving SKUs in Sports and Food & Bev."
+        //       ✏️
+      },
+      {
+        icon:   "❤️",
+        accent: "#0D9488",           // ✏️ teal = positive/growth
+        label:  "Retention Near Baseline",           // ✏️
+        text:   "At 73.2%, retention just edges past 72%. Launch a loyalty reward program to push retention above 78% for Q2."
+        //       ✏️
+      },
+      {
+        icon:   "🏪",
+        accent: "#7C3AED",           // ✏️ purple = neutral/strategic
+        label:  "Category Diversification Needed",   // ✏️
+        text:   "Electronics dominates at ₱520K. Invest in Apparel and Home & Garden marketing to reduce category concentration risk."
+        //       ✏️
+      },
+    ],
+
+  }, // ← END Q1  (do not delete this line)
+
+
+/* ──────────────────────────────────────────────────────────────────
+   ✏️  Q2 DATA  |  April · May · June
+   ────────────────────────────────────────────────────────────────── */
+  Q2: {
+
+    months:   [ "Apr",  "May",  "Jun"  ],  // ✏️
+    revenue:  [  540,    610,    580   ],  // ✏️ ₱K
+    expenses: [  360,    395,    375   ],  // ✏️ ₱K
+    profit:   [  180,    215,    205   ],  // ✏️ ₱K
+    orders:   [ 2360,   2670,   2540   ],  // ✏️ order count
+
+    categories: {
+      labels: [ "Electronics",  "Apparel",  "Home & Garden",  "Sports",  "Food & Bev" ],  // ✏️
+      values: [   640,           390,         310,              260,        130         ]   // ✏️ ₱K
+    },
+
+    regions: [
+      { name: "Metro Manila",  pct: 40,  color: "#2563EB" },  // ✏️ (pct sum must = 100)
+      { name: "Visayas",       pct: 21,  color: "#0D9488" },  // ✏️
+      { name: "Mindanao",      pct: 19,  color: "#D97706" },  // ✏️
+      { name: "Luzon North",   pct: 12,  color: "#7C3AED" },  // ✏️
+      { name: "Luzon South",   pct:  8,  color: "#E05A3A" },  // ✏️
+    ],
+
+    kpis: {
+      revenue:       "₱1,730K",  // ✏️
+      growth:        "+31.1%",   // ✏️
+      growthDir:     "up",       // ✏️ "up" or "down"
+      retention:     "76.8%",    // ✏️
+      retentionDiff: "+4.8%",    // ✏️
+      aov:           "₱3,120",   // ✏️
+      aovDiff:       "+11.4%",   // ✏️
+      turnover:      "5.3x",     // ✏️
+      turnoverDiff:  "+32.5%",   // ✏️
+      margin:        "34.7%",    // ✏️
+      marginDiff:    "+4.7pts",  // ✏️
+    },
+
+    insights: [
+      {
+        icon: "🚀", accent: "#16A34A",
+        label: "Strong Revenue Surge",                          // ✏️
+        text:  "Q2 revenue jumped 31.1% — summer promotions and back-to-school campaigns are paying off. Scale digital ads heading into Q3."
+        //      ✏️ Your analysis + recommendation
+      },
+      {
+        icon: "📈", accent: "#2563EB",
+        label: "Margin Exceeds Target",                         // ✏️
+        text:  "Profit margin hit 34.7%, well above the 30% goal. Channel gains into R&D for a private-label Electronics line to defend margin."
+        //      ✏️
+      },
+      {
+        icon: "❤️", accent: "#0D9488",
+        label: "Retention Improving",                           // ✏️
+        text:  "Retention climbed to 76.8%. The loyalty pilot is working — expand to Mindanao branches in Q3 and track NPS monthly."
+        //      ✏️
+      },
+      {
+        icon: "🏙️", accent: "#7C3AED",
+        label: "Metro Manila Leadership",                       // ✏️
+        text:  "Metro Manila now at 40% share. Diversify by offering region-specific bundles in Visayas and Mindanao to drive balanced growth."
+        //      ✏️
+      },
+    ],
+
+  }, // ← END Q2
+
+
+/* ──────────────────────────────────────────────────────────────────
+   ✏️  Q3 DATA  |  July · August · September
+   ────────────────────────────────────────────────────────────────── */
+  Q3: {
+
+    months:   [ "Jul",  "Aug",  "Sep"  ],  // ✏️
+    revenue:  [  490,    520,    670   ],  // ✏️ ₱K
+    expenses: [  330,    350,    420   ],  // ✏️ ₱K
+    profit:   [  160,    170,    250   ],  // ✏️ ₱K
+    orders:   [ 2140,   2280,   2930   ],  // ✏️ order count
+
+    categories: {
+      labels: [ "Electronics",  "Apparel",  "Home & Garden",  "Sports",  "Food & Bev" ],  // ✏️
+      values: [   580,           430,         290,              310,        170         ]   // ✏️ ₱K
+    },
+
+    regions: [
+      { name: "Metro Manila",  pct: 37,  color: "#2563EB" },  // ✏️ (pct sum must = 100)
+      { name: "Visayas",       pct: 24,  color: "#0D9488" },  // ✏️
+      { name: "Mindanao",      pct: 20,  color: "#D97706" },  // ✏️
+      { name: "Luzon North",   pct: 13,  color: "#7C3AED" },  // ✏️
+      { name: "Luzon South",   pct:  6,  color: "#E05A3A" },  // ✏️
+    ],
+
+    kpis: {
+      revenue:       "₱1,680K",  // ✏️
+      growth:        "-2.9%",    // ✏️
+      growthDir:     "down",     // ✏️ "down" triggers red arrow
+      retention:     "74.5%",    // ✏️
+      retentionDiff: "+2.5%",    // ✏️
+      aov:           "₱2,980",   // ✏️
+      aovDiff:       "+6.4%",    // ✏️
+      turnover:      "4.8x",     // ✏️
+      turnoverDiff:  "+20.0%",   // ✏️
+      margin:        "33.9%",    // ✏️
+      marginDiff:    "+3.9pts",  // ✏️
+    },
+
+    insights: [
+      {
+        icon: "📉", accent: "#E05A3A",
+        label: "Revenue Slight Contraction",                    // ✏️
+        text:  "Revenue dipped 2.9% — typical mid-year slowdown. Prepare strong Q4 holiday campaigns now to recover and set a Q4 record."
+        //      ✏️
+      },
+      {
+        icon: "🏋️", accent: "#D97706",
+        label: "Sports Category Rising",                        // ✏️
+        text:  "Sports grew to ₱310K, nearly matching Apparel. Consider dedicated Sports promotions around the school sports season in Q4."
+        //      ✏️
+      },
+      {
+        icon: "🌏", accent: "#0D9488",
+        label: "Regional Rebalancing",                          // ✏️
+        text:  "Visayas share grew to 24% — the regional expansion strategy is working. Increase inventory allocation to Visayas warehouses."
+        //      ✏️
+      },
+      {
+        icon: "📦", accent: "#7C3AED",
+        label: "Inventory Efficiency Good",                     // ✏️
+        text:  "Turnover at 4.8x is healthy. However, Home & Garden shows slower movement — consider clearance bundling before the Q4 peak."
+        //      ✏️
+      },
+    ],
+
+  }, // ← END Q3
+
+
+/* ──────────────────────────────────────────────────────────────────
+   ✏️  Q4 DATA  |  October · November · December
+   ────────────────────────────────────────────────────────────────── */
+  Q4: {
+
+    months:   [ "Oct",  "Nov",  "Dec"  ],  // ✏️
+    revenue:  [  720,    980,   1240   ],  // ✏️ ₱K
+    expenses: [  450,    590,    720   ],  // ✏️ ₱K
+    profit:   [  270,    390,    520   ],  // ✏️ ₱K
+    orders:   [ 3150,   4290,   5420   ],  // ✏️ order count
+
+    categories: {
+      labels: [ "Electronics",  "Apparel",  "Home & Garden",  "Sports",  "Food & Bev" ],  // ✏️
+      values: [   980,           640,         410,              290,        220         ]   // ✏️ ₱K
+    },
+
+    regions: [
+      { name: "Metro Manila",  pct: 42,  color: "#2563EB" },  // ✏️ (pct sum must = 100)
+      { name: "Visayas",       pct: 20,  color: "#0D9488" },  // ✏️
+      { name: "Mindanao",      pct: 18,  color: "#D97706" },  // ✏️
+      { name: "Luzon North",   pct: 13,  color: "#7C3AED" },  // ✏️
+      { name: "Luzon South",   pct:  7,  color: "#E05A3A" },  // ✏️
+    ],
+
+    kpis: {
+      revenue:       "₱2,940K",  // ✏️
+      growth:        "+75.0%",   // ✏️
+      growthDir:     "up",       // ✏️ "up" or "down"
+      retention:     "81.4%",    // ✏️
+      retentionDiff: "+9.4%",    // ✏️
+      aov:           "₱3,870",   // ✏️
+      aovDiff:       "+38.2%",   // ✏️
+      turnover:      "7.2x",     // ✏️
+      turnoverDiff:  "+80.0%",   // ✏️
+      margin:        "39.5%",    // ✏️
+      marginDiff:    "+9.5pts",  // ✏️
+    },
+
+    insights: [
+      {
+        icon: "🎉", accent: "#16A34A",
+        label: "Record Holiday Revenue",                        // ✏️
+        text:  "Q4 revenue hit ₱2,940K — a 75% surge driven by Christmas demand. Secure supplier agreements early for Q4 2025 to handle anticipated volume growth."
+        //      ✏️
+      },
+      {
+        icon: "❤️", accent: "#0D9488",
+        label: "Retention at All-Time High",                    // ✏️
+        text:  "Customer retention reached 81.4%, the highest ever recorded. Scale the loyalty program company-wide and introduce tiered membership benefits."
+        //      ✏️
+      },
+      {
+        icon: "💡", accent: "#2563EB",
+        label: "Electronics Dominates Holidays",                // ✏️
+        text:  "Electronics led with ₱980K. Pre-negotiate exclusive product launches with key vendors for the Christmas season to maintain category leadership."
+        //      ✏️
+      },
+      {
+        icon: "🚀", accent: "#7C3AED",
+        label: "Sustain Peak Margin",                           // ✏️
+        text:  "Net margin of 39.5% exceeds all targets. Reinvest surplus into Q1 brand awareness campaigns to prevent the typical post-holiday revenue dip."
+        //      ✏️
+      },
+    ],
+
+  }, // ← END Q4
+
+}; // ← END DATA OBJECT — do not delete this closing brace
+
+
+/* ════════════════════════════════════════════════════════════════════
+   ⚙️  CHART ENGINE — no edits needed below this line
+   ════════════════════════════════════════════════════════════════════ */
+let revenueChart, regionChart, categoryChart, ordersChart;
+const CAT_COLORS = ["#2563EB","#0D9488","#D97706","#7C3AED","#E05A3A"];
+
+function buildCharts(q) {
+  const d = DATA[q];
+  if (revenueChart) revenueChart.destroy();
+  revenueChart = new Chart(document.getElementById("revenueChart"), {
+    type: "line",
+    data: {
+      labels: d.months,
+      datasets: [
+        { label:"Revenue",  data:d.revenue,  borderColor:"#2563EB", backgroundColor:"rgba(37,99,235,0.08)", fill:true, tension:0.4, borderWidth:2.5, pointRadius:4, pointBackgroundColor:"#2563EB" },
+        { label:"Expenses", data:d.expenses, borderColor:"#E05A3A", backgroundColor:"transparent", borderDash:[6,4], tension:0.4, borderWidth:2, pointRadius:4, pointBackgroundColor:"#E05A3A" },
+        { label:"Profit",   data:d.profit,   borderColor:"#16A34A", backgroundColor:"rgba(22,163,74,0.06)", fill:true, tension:0.4, borderWidth:2.5, pointRadius:4, pointBackgroundColor:"#16A34A" },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:"rgba(0,0,0,0.05)" }, ticks:{ font:{ family:"DM Sans",size:12 } } },
+        y:{ grid:{ color:"rgba(0,0,0,0.05)" }, ticks:{ font:{ family:"DM Sans",size:12 }, callback: v => "₱"+v } }
+      }
+    }
+  });
+
+  if (regionChart) regionChart.destroy();
+  regionChart = new Chart(document.getElementById("regionChart"), {
+    type: "doughnut",
+    data: {
+      labels: d.regions.map(r=>r.name),
+      datasets:[{ data:d.regions.map(r=>r.pct), backgroundColor:d.regions.map(r=>r.color), borderWidth:2, borderColor:"#fff", hoverOffset:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:"65%",
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.label+": "+ctx.parsed+"%" } } }
+    }
+  });
+
+  document.getElementById("region-list").innerHTML = d.regions.map(r => `
+    <div class="region-row">
+      <div class="region-name">${r.name}</div>
+      <div class="region-bar-wrap"><div class="region-bar" style="width:${r.pct}%;background:${r.color}"></div></div>
+      <div class="region-pct">${r.pct}%</div>
+    </div>`).join("");
+
+  if (categoryChart) categoryChart.destroy();
+  categoryChart = new Chart(document.getElementById("categoryChart"), {
+    type: "bar",
+    data: {
+      labels: d.categories.labels,
+      datasets:[{ label:"Sales (₱K)", data:d.categories.values, backgroundColor:CAT_COLORS, borderRadius:4, borderSkipped:false }]
+    },
+    options:{
+      indexAxis:"y", responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:"rgba(0,0,0,0.05)" }, ticks:{ font:{ family:"DM Sans",size:12 }, callback: v => "₱"+v } },
+        y:{ grid:{ display:false }, ticks:{ font:{ family:"DM Sans",size:12 } } }
+      }
+    }
+  });
+
+  if (ordersChart) ordersChart.destroy();
+  ordersChart = new Chart(document.getElementById("ordersChart"), {
+    type:"bar",
+    data:{ labels:d.months, datasets:[{ label:"Orders", data:d.orders, backgroundColor:"#0D9488", borderRadius:5 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:"rgba(0,0,0,0.05)" }, ticks:{ font:{ family:"DM Sans",size:12 } } },
+        y:{ grid:{ color:"rgba(0,0,0,0.05)" }, ticks:{ font:{ family:"DM Sans",size:12 }, callback: v => v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+function updateKPIs(q) {
+  const k = DATA[q].kpis;
+  const isDown = k.growthDir === "down";
+  document.getElementById("kpi-quarter-label").textContent = `Key Performance Indicators — ${q} 2024`;
+  document.getElementById("kpi-revenue").textContent   = k.revenue;
+  document.getElementById("kpi-growth").textContent    = k.growth;
+  document.getElementById("kpi-retention").textContent = k.retention;
+  document.getElementById("kpi-aov").textContent       = k.aov;
+  document.getElementById("kpi-turnover").textContent  = k.turnover;
+  document.getElementById("kpi-margin").textContent    = k.margin;
+  const gt = document.getElementById("kpi-revenue-trend");
+  gt.className = "kpi-trend "+(isDown?"down":"up");
+  gt.innerHTML = (isDown?"▼ ":"▲ ")+k.growth+' <span>vs prev quarter</span>';
+  const gg = document.getElementById("kpi-growth-trend");
+  gg.className = "kpi-trend "+(isDown?"down":"up");
+  gg.style.color = isDown ? "var(--coral)" : "var(--green)";
+  gg.innerHTML = (isDown?"▼ Declining":"▲ Quarter-over-quarter")+' <span>growth</span>';
+  document.getElementById("kpi-retention-trend").innerHTML = `▲ ${k.retentionDiff} <span>vs 72% baseline</span>`;
+  document.getElementById("kpi-aov-trend").innerHTML       = `▲ ${k.aovDiff} <span>vs ₱2,800 target</span>`;
+  document.getElementById("kpi-turnover-trend").innerHTML  = `▲ ${k.turnoverDiff} <span>vs 4.0x benchmark</span>`;
+  document.getElementById("kpi-margin-trend").innerHTML    = `▲ ${k.marginDiff} <span>vs 30% target</span>`;
+  document.getElementById("footer-quarter").textContent    = q;
+}
+
+function updateInsights(q) {
+  document.getElementById("insights-grid").innerHTML = DATA[q].insights.map(i => `
+    <div class="insight-card" style="--accent:${i.accent};--icon-bg:${i.accent}18">
+      <div class="insight-icon" style="color:${i.accent}">${i.icon}</div>
+      <div>
+        <div class="insight-label">${i.label}</div>
+        <div class="insight-text">${i.text}</div>
+      </div>
+    </div>`).join("");
+}
+
+function switchQuarter(q) {
+  document.querySelectorAll(".q-btn").forEach(b => b.classList.toggle("active", b.dataset.q === q));
+  updateKPIs(q);
+  buildCharts(q);
+  updateInsights(q);
+}
+
+document.querySelectorAll(".q-btn").forEach(b => b.addEventListener("click", () => switchQuarter(b.dataset.q)));
+switchQuarter("Q4");
+</script>
+</body>
+</html>
